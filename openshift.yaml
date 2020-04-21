@@ -1,0 +1,105 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    build: ubi-jre-minimal
+  name: ubi-jre-minimal
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    build: spark-operator
+  name: spark-operator
+spec:
+  lookupPolicy:
+    local: true
+
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    build: ubi-jre-minimal
+  name: ubi-jre-minimal
+spec:
+  failedBuildsHistoryLimit: 5
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: ubi-jre-minimal:latest
+  postCommit: {}
+  resources: {}
+  runPolicy: Serial
+  source:
+    git:
+      uri: https://github.com/jkremser/ubi-jre-minimal.git
+    type: Git
+  strategy:
+    dockerStrategy:
+      dockerfilePath: java-1.8.0/Dockerfile
+      from:
+        kind: DockerImage
+        name: registry.access.redhat.com/ubi8/ubi-minimal:8.0
+    type: Docker
+  successfulBuildsHistoryLimit: 5
+  triggers:
+  - github:
+      secret: -z6NJg1P6H1zVLpIq6rx
+    type: GitHub
+  - generic:
+      secret: CVGyl4gxVcyYoB8Znsyh
+    type: Generic
+  - type: ConfigChange
+  - type: ImageChange
+status:
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    build: spark-operator
+  name: spark-operator
+spec:
+  failedBuildsHistoryLimit: 5
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: spark-operator:latest
+  postCommit: {}
+  resources: {}
+  runPolicy: Serial
+  source:
+    git:
+      uri: https://github.com/vpavlin/spark-operator.git
+    type: Git
+    images:
+    - from: 
+        kind: DockerImage
+        name: quay.io/radanalyticsio/spark-operator:latest-released
+      paths: 
+      - sourcePath: /spark-operator.jar
+        destinationDir: "."
+  strategy:
+    dockerStrategy:
+      dockerfilePath: Dockerfile.ubi-maven
+      from:
+        kind: ImageStreamTag
+        name: ubi-jre-minimal:latest
+    type: Docker
+  successfulBuildsHistoryLimit: 5
+  triggers:
+  - github:
+      secret: -z6NJg1P6H1zVLpIq6rx
+    type: GitHub
+  - generic:
+      secret: CVGyl4gxVcyYoB8Znsyh
+    type: Generic
+  - type: ConfigChange
+  - type: ImageChange
+status:
